@@ -1,0 +1,6 @@
+{
+  "name": "The New York Times Front Page",
+  "description": "Authentic digital broadsheet reader for The New York Times featuring breaking news, interactive articles, opinion columns, and a playable Mini Crossword.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
