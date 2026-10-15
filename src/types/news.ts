@@ -9,6 +9,7 @@ export interface Article {
   authorRole?: string;
   date: string;
   photoUrl?: string;
+  placeholderUrl?: string;
   photoCaption?: string;
   photoCredit?: string;
   paragraphs: string[];

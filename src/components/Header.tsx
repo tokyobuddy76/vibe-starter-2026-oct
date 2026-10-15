@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenLogin: () => void;
   onOpenTodaysPaper: () => void;
   onOpenSavedDrawer: () => void;
+  onOpenLiveUpdates?: () => void;
   onSelectSection: (section: string) => void;
   activeSection: string;
   savedCount: number;
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLogin,
   onOpenTodaysPaper,
   onOpenSavedDrawer,
+  onOpenLiveUpdates,
   onSelectSection,
   activeSection,
   savedCount,
@@ -76,12 +78,58 @@ export const Header: React.FC<HeaderProps> = ({
     setWeatherCity(keys[nextIdx]);
   };
 
+  const [showBreaking, setShowBreaking] = useState(true);
+  const [showSectionsDrawer, setShowSectionsDrawer] = useState(false);
+
   return (
-    <header className="max-w-[1240px] mx-auto px-4 pt-2">
+    <header className="max-w-[1240px] mx-auto px-4 pt-1">
+      {/* Breaking News Ticker Bar (Collapsible) */}
+      {showBreaking && (
+        <div className="bg-[#fcf3f2] border border-[#f5c6cb] px-3 py-1.5 rounded-xs mb-2 flex items-center justify-between font-sansText text-xs text-red-900 animate-fade-in">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="bg-red-700 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-xs shrink-0 animate-pulse">
+              LIVE REPORT
+            </span>
+            <span className="font-bold shrink-0">Capitol Hill:</span>
+            <span className="truncate text-red-950 font-serifText text-xs">
+              Senate opens confirmation hearings for key homeland and cabinet selections.
+            </span>
+            {onOpenLiveUpdates && (
+              <button
+                onClick={onOpenLiveUpdates}
+                className="text-[11px] font-bold text-red-700 hover:underline shrink-0 ml-1 cursor-pointer"
+              >
+                Follow live updates →
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowBreaking(false)}
+            className="text-red-700 hover:text-black p-0.5 text-xs cursor-pointer ml-2"
+            title="Dismiss alert"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Top Utility Bar */}
       <div className="flex items-center justify-between text-[11px] font-sansText text-nyt-grayDark pb-2 border-b border-nyt-border" data-purpose="utility-bar">
-        {/* Left: Search & Edition selector */}
+        {/* Left: Sections Mega Menu, Search & Edition selector */}
         <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowSectionsDrawer(!showSectionsDrawer)}
+            className="p-1 hover:text-black flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer group"
+            title="All Sections"
+          >
+            <div className="space-y-0.5 w-3.5 flex flex-col justify-center">
+              <span className="block h-0.5 w-full bg-nyt-grayDark group-hover:bg-black transition-colors"></span>
+              <span className="block h-0.5 w-full bg-nyt-grayDark group-hover:bg-black transition-colors"></span>
+              <span className="block h-0.5 w-full bg-nyt-grayDark group-hover:bg-black transition-colors"></span>
+            </div>
+            <span className="uppercase tracking-wider text-[10px] font-bold hidden sm:inline">Sections</span>
+          </button>
+
           <button
             onClick={onOpenSearch}
             className="p-1 hover:text-black flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer group"
@@ -232,6 +280,87 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         )}
       </div>
+
+      {/* Sections Mega Drawer */}
+      {showSectionsDrawer && (
+        <div className="border-b-2 border-black bg-white shadow-xl py-6 px-4 animate-fade-in font-sansText">
+          <div className="flex items-center justify-between pb-3 border-b border-neutral-200 mb-4">
+            <span className="font-bold text-xs uppercase tracking-widest text-neutral-500">
+              The New York Times Directory
+            </span>
+            <button
+              onClick={() => setShowSectionsDrawer(false)}
+              className="text-xs hover:underline text-neutral-500 hover:text-black cursor-pointer"
+            >
+              Close ✕
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-6 text-xs">
+            <div>
+              <h5 className="font-bold text-nyt-black uppercase text-[11px] tracking-wider mb-2 border-b border-neutral-100 pb-1">
+                News
+              </h5>
+              <ul className="space-y-1.5 text-neutral-700">
+                <li><button onClick={() => { onSelectSection('U.S.'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Home Page</button></li>
+                <li><button onClick={() => { onSelectSection('U.S.'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">U.S. News</button></li>
+                <li><button onClick={() => { onSelectSection('World'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">World Politics</button></li>
+                <li><button onClick={() => { onSelectSection('Business'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Business &amp; Finance</button></li>
+                <li><button onClick={() => { onSelectSection('U.S.'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Capitol Hearings</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-bold text-nyt-black uppercase text-[11px] tracking-wider mb-2 border-b border-neutral-100 pb-1">
+                Opinion
+              </h5>
+              <ul className="space-y-1.5 text-neutral-700">
+                <li><button onClick={() => { onSelectSection('Opinion'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Today's Columns</button></li>
+                <li><button onClick={() => { onSelectSection('Opinion'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Thomas L. Friedman</button></li>
+                <li><button onClick={() => { onSelectSection('Opinion'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Paul Krugman</button></li>
+                <li><button onClick={() => { onSelectSection('Opinion'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Pamela Paul</button></li>
+                <li><button onClick={() => { onSelectSection('Opinion'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Guest Essays</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-bold text-nyt-black uppercase text-[11px] tracking-wider mb-2 border-b border-neutral-100 pb-1">
+                Arts &amp; Culture
+              </h5>
+              <ul className="space-y-1.5 text-neutral-700">
+                <li><button onClick={() => { onSelectSection('Arts'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Arts &amp; Leisure</button></li>
+                <li><button onClick={() => { onSelectSection('Arts'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Television Reviews</button></li>
+                <li><button onClick={() => { onSelectSection('Arts'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Book Review</button></li>
+                <li><button onClick={() => { onSelectSection('Arts'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Movies &amp; Theater</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-bold text-nyt-black uppercase text-[11px] tracking-wider mb-2 border-b border-neutral-100 pb-1">
+                Living &amp; Lifestyle
+              </h5>
+              <ul className="space-y-1.5 text-neutral-700">
+                <li><button onClick={() => { onSelectSection('Cooking'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer font-semibold text-red-800">NYT Cooking</button></li>
+                <li><button onClick={() => { onSelectSection('Wirecutter'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer font-semibold text-black">Wirecutter Reviews</button></li>
+                <li><button onClick={() => { onSelectSection('Lifestyle'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Travel</button></li>
+                <li><button onClick={() => { onSelectSection('Lifestyle'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Style &amp; Fashion</button></li>
+              </ul>
+            </div>
+
+            <div>
+              <h5 className="font-bold text-nyt-black uppercase text-[11px] tracking-wider mb-2 border-b border-neutral-100 pb-1">
+                Play &amp; Audio
+              </h5>
+              <ul className="space-y-1.5 text-neutral-700">
+                <li><button onClick={() => { onSelectSection('Games'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer font-semibold text-emerald-800">The Mini Crossword</button></li>
+                <li><button onClick={() => { onSelectSection('Games'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Wordle &amp; Connections</button></li>
+                <li><button onClick={() => { onSelectSection('Audio'); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Audio Companion</button></li>
+                <li><button onClick={() => { onOpenTodaysPaper(); setShowSectionsDrawer(false); }} className="hover:underline cursor-pointer">Today's Paper Replica</button></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

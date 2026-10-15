@@ -37,6 +37,12 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
   const [audioProgress, setAudioProgress] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.25 | 1.5>(1);
 
+  // Scroll reading progress
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Reading theme state
+  const [readingTheme, setReadingTheme] = useState<'white' | 'sepia' | 'dark'>('white');
+
   // Text size state
   const [textSize, setTextSize] = useState<'normal' | 'large' | 'larger'>('normal');
 
@@ -65,22 +71,56 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
   const [newCommentText, setNewCommentText] = useState('');
   const [newCommentName, setNewCommentName] = useState('');
 
-  // Audio timer simulation
+  // Scroll depth tracking
   useEffect(() => {
-    let timer: any;
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        const progress = Math.min(100, Math.max(0, (window.scrollY / totalHeight) * 100));
+        setScrollProgress(progress);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Web Speech API integration
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+
     if (isPlayingAudio) {
-      timer = setInterval(() => {
-        setAudioProgress((prev) => {
-          if (prev >= 100) {
-            setIsPlayingAudio(false);
-            return 0;
-          }
-          return prev + 1 * playbackSpeed;
-        });
-      }, 1000);
+      window.speechSynthesis.cancel();
+      const textToRead = `${article.title}. ${article.summary}. ${article.paragraphs.join(' ')}`;
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.rate = playbackSpeed;
+
+      utterance.onboundary = (e) => {
+        if (textToRead.length > 0) {
+          const pct = Math.min(100, Math.round((e.charIndex / textToRead.length) * 100));
+          setAudioProgress(pct);
+        }
+      };
+
+      utterance.onend = () => {
+        setIsPlayingAudio(false);
+        setAudioProgress(100);
+      };
+
+      utterance.onerror = () => {
+        setIsPlayingAudio(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      window.speechSynthesis.cancel();
     }
-    return () => clearInterval(timer);
-  }, [isPlayingAudio, playbackSpeed]);
+
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [isPlayingAudio, playbackSpeed, article.id]);
 
   // Handle escape to go back
   useEffect(() => {
@@ -132,151 +172,269 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
   };
 
   return (
-    <article className="max-w-[1240px] mx-auto px-4 py-4 antialiased">
-      {/* Toast Notification */}
-      {showShareToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#121212] text-white px-4 py-2.5 rounded-sm shadow-xl flex items-center gap-2 text-sm font-sansText animate-fade-in">
-          <Check className="w-4 h-4 text-emerald-400" />
-          <span>Article link copied to clipboard</span>
-        </div>
-      )}
+    <article
+      className={`min-h-screen transition-colors duration-300 ${
+        readingTheme === 'sepia'
+          ? 'bg-[#fbf9f5] text-[#1c1917]'
+          : readingTheme === 'dark'
+          ? 'bg-[#141414] text-[#ececec]'
+          : 'bg-white text-nyt-black'
+      }`}
+    >
+      {/* Sticky Scroll Reading Progress Bar at the top */}
+      <div
+        className="fixed top-0 left-0 h-1 bg-red-700 z-50 transition-all duration-150"
+        style={{ width: `${scrollProgress}%` }}
+      />
 
-      {/* Top Breadcrumb & Navigation */}
-      <div className="flex items-center justify-between pb-3 mb-4 border-b border-nyt-border font-sansText text-xs text-nyt-grayMuted">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-nyt-black hover:text-nyt-accent font-semibold transition-colors cursor-pointer"
+      <div className="max-w-[1240px] mx-auto px-4 py-4 antialiased">
+        {/* Toast Notification */}
+        {showShareToast && (
+          <div className="fixed bottom-6 right-6 z-50 bg-[#121212] text-white px-4 py-2.5 rounded-sm shadow-xl flex items-center gap-2 text-sm font-sansText animate-fade-in">
+            <Check className="w-4 h-4 text-emerald-400" />
+            <span>Article link copied to clipboard</span>
+          </div>
+        )}
+
+        {/* Top Breadcrumb & Navigation */}
+        <div
+          className={`flex items-center justify-between pb-3 mb-4 border-b font-sansText text-xs ${
+            readingTheme === 'dark' ? 'border-neutral-800 text-neutral-400' : 'border-nyt-border text-nyt-grayMuted'
+          }`}
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Front Page</span>
-        </button>
+          <button
+            onClick={onBack}
+            className={`flex items-center gap-1.5 font-semibold transition-colors cursor-pointer ${
+              readingTheme === 'dark' ? 'text-white hover:text-neutral-300' : 'text-nyt-black hover:text-nyt-accent'
+            }`}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Front Page</span>
+          </button>
 
-        <div className="flex items-center gap-2">
-          <span className="uppercase tracking-widest text-[11px] font-bold text-nyt-black">
-            {article.category}
-          </span>
-          <span>•</span>
-          <span>{article.date}</span>
-        </div>
-      </div>
-
-      {/* Reading Container: max-w-[800px] centered */}
-      <div className="max-w-[780px] mx-auto">
-        {/* Category kicker */}
-        <div className="mb-2">
-          <span className="font-sansText text-[11px] font-bold uppercase tracking-widest text-red-700">
-            {article.category}
-          </span>
-        </div>
-
-        {/* Headline */}
-        <h1 className="font-headline text-3xl sm:text-4xl md:text-[44px] font-bold text-nyt-black leading-[1.12] mb-3">
-          {article.title}
-        </h1>
-
-        {/* Deck / Summary */}
-        <p className="font-serifText text-xl text-nyt-grayDark leading-snug mb-5">
-          {article.summary}
-        </p>
-
-        {/* Byline and Dateline */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-y border-nyt-border py-3 my-4 gap-2 font-sansText text-xs text-nyt-grayMuted">
-          <div>
-            <p className="font-bold text-nyt-black text-[13px]">{article.byline}</p>
-            {article.authorRole && <p className="text-[11px] text-nyt-grayLight">{article.authorRole}</p>}
-          </div>
-          <div className="flex items-center gap-3 text-[11px]">
-            <span>{article.readTime}</span>
-            <span>•</span>
-            <span>Published Oct. 14, 2026</span>
-          </div>
-        </div>
-
-        {/* Action Bar (Audio, Bookmark, Share, Font Size) */}
-        <div className="bg-nyt-subtleBg border border-nyt-border rounded-sm p-3 mb-6 flex flex-wrap items-center justify-between gap-3 font-sansText">
-          {/* Audio listen player */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-              className="bg-black text-white hover:bg-neutral-800 p-2 rounded-full transition-transform active:scale-95 cursor-pointer flex items-center justify-center shadow-xs"
-              title={isPlayingAudio ? 'Pause Narration' : 'Listen to this article'}
-            >
-              {isPlayingAudio ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
-            </button>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-nyt-black">
-                {isPlayingAudio ? 'Narrating article...' : 'Listen to this story'}
-              </span>
-              <span className="text-[10px] text-nyt-grayLight">
-                {isPlayingAudio ? `${audioProgress}% completed` : `${article.readTime} audio companion`}
-              </span>
-            </div>
-            {isPlayingAudio && (
-              <button
-                onClick={() => setPlaybackSpeed(playbackSpeed === 1 ? 1.25 : playbackSpeed === 1.25 ? 1.5 : 1)}
-                className="text-[10px] font-bold border border-nyt-border px-1.5 py-0.5 rounded-sm hover:bg-white bg-white text-black cursor-pointer ml-1"
-              >
-                {playbackSpeed}x
-              </button>
-            )}
-          </div>
-
-          {/* Right actions: bookmark, share, font adjust */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleBookmark}
-              className={`p-2 rounded-xs border transition-colors cursor-pointer flex items-center gap-1.5 text-xs ${
-                isBookmarked
-                  ? 'border-black bg-black text-white'
-                  : 'border-nyt-border bg-white hover:bg-neutral-50 text-nyt-black'
+            <span
+              className={`uppercase tracking-widest text-[11px] font-bold ${
+                readingTheme === 'dark' ? 'text-white' : 'text-nyt-black'
               }`}
-              title="Bookmark story"
             >
-              <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
-              <span className="hidden sm:inline">{isBookmarked ? 'Saved' : 'Save'}</span>
-            </button>
-
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-xs border border-nyt-border bg-white hover:bg-neutral-50 text-nyt-black transition-colors cursor-pointer flex items-center gap-1.5 text-xs"
-              title="Share link"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Share</span>
-            </button>
-
-            {/* Font Size Selector */}
-            <div className="flex items-center border border-nyt-border rounded-xs bg-white text-xs overflow-hidden">
-              <button
-                onClick={() => setTextSize('normal')}
-                className={`px-2 py-1.5 transition-colors cursor-pointer ${
-                  textSize === 'normal' ? 'bg-nyt-black text-white font-bold' : 'text-nyt-grayDark hover:bg-neutral-100'
-                }`}
-                title="Normal text size"
-              >
-                A
-              </button>
-              <button
-                onClick={() => setTextSize('large')}
-                className={`px-2 py-1.5 text-sm transition-colors cursor-pointer ${
-                  textSize === 'large' ? 'bg-nyt-black text-white font-bold' : 'text-nyt-grayDark hover:bg-neutral-100'
-                }`}
-                title="Large text size"
-              >
-                A+
-              </button>
-              <button
-                onClick={() => setTextSize('larger')}
-                className={`px-2 py-1.5 text-base transition-colors cursor-pointer ${
-                  textSize === 'larger' ? 'bg-nyt-black text-white font-bold' : 'text-nyt-grayDark hover:bg-neutral-100'
-                }`}
-                title="Largest text size"
-              >
-                A++
-              </button>
-            </div>
+              {article.category}
+            </span>
+            <span>•</span>
+            <span>{article.date}</span>
           </div>
         </div>
+
+        {/* Reading Container: max-w-[800px] centered */}
+        <div className="max-w-[780px] mx-auto">
+          {/* Category kicker */}
+          <div className="mb-2">
+            <span className="font-sansText text-[11px] font-bold uppercase tracking-widest text-red-700">
+              {article.category}
+            </span>
+          </div>
+
+          {/* Headline */}
+          <h1
+            className={`font-headline text-3xl sm:text-4xl md:text-[44px] font-bold leading-[1.12] mb-3 ${
+              readingTheme === 'dark' ? 'text-white' : 'text-nyt-black'
+            }`}
+          >
+            {article.title}
+          </h1>
+
+          {/* Deck / Summary */}
+          <p
+            className={`font-serifText text-xl leading-snug mb-5 ${
+              readingTheme === 'dark' ? 'text-neutral-300' : 'text-nyt-grayDark'
+            }`}
+          >
+            {article.summary}
+          </p>
+
+          {/* Byline and Dateline */}
+          <div
+            className={`flex flex-col sm:flex-row sm:items-center justify-between border-y py-3 my-4 gap-2 font-sansText text-xs ${
+              readingTheme === 'dark'
+                ? 'border-neutral-800 text-neutral-400'
+                : 'border-nyt-border text-nyt-grayMuted'
+            }`}
+          >
+            <div>
+              <p
+                className={`font-bold text-[13px] ${
+                  readingTheme === 'dark' ? 'text-white' : 'text-nyt-black'
+                }`}
+              >
+                {article.byline}
+              </p>
+              {article.authorRole && (
+                <p className="text-[11px] text-neutral-500">{article.authorRole}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-3 text-[11px]">
+              <span>{article.readTime}</span>
+              <span>•</span>
+              <span>Published Oct. 14, 2026</span>
+            </div>
+          </div>
+
+          {/* Action Bar (Audio, Bookmark, Share, Font Size, Theme) */}
+          <div
+            className={`border rounded-sm p-3 mb-6 flex flex-wrap items-center justify-between gap-3 font-sansText ${
+              readingTheme === 'dark'
+                ? 'bg-neutral-900 border-neutral-800'
+                : readingTheme === 'sepia'
+                ? 'bg-[#f4efe6] border-[#e2d9cc]'
+                : 'bg-nyt-subtleBg border-nyt-border'
+            }`}
+          >
+            {/* Audio listen player */}
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                className="bg-black text-white hover:bg-neutral-800 p-2 rounded-full transition-transform active:scale-95 cursor-pointer flex items-center justify-center shadow-xs"
+                title={isPlayingAudio ? 'Pause Narration' : 'Listen to this article'}
+              >
+                {isPlayingAudio ? (
+                  <Pause className="w-4 h-4 fill-current text-white" />
+                ) : (
+                  <Play className="w-4 h-4 fill-current text-white ml-0.5" />
+                )}
+              </button>
+              <div className="flex flex-col">
+                <span
+                  className={`text-xs font-bold ${
+                    readingTheme === 'dark' ? 'text-white' : 'text-nyt-black'
+                  }`}
+                >
+                  {isPlayingAudio ? 'Speaking article...' : 'Listen to this story'}
+                </span>
+                <span className="text-[10px] text-neutral-500">
+                  {isPlayingAudio
+                    ? `${audioProgress}% narrated (Web Speech)`
+                    : `${article.readTime} audio companion`}
+                </span>
+              </div>
+              {isPlayingAudio && (
+                <button
+                  onClick={() =>
+                    setPlaybackSpeed(
+                      playbackSpeed === 1 ? 1.25 : playbackSpeed === 1.25 ? 1.5 : 1
+                    )
+                  }
+                  className="text-[10px] font-bold border border-neutral-300 px-1.5 py-0.5 rounded-sm bg-white text-black cursor-pointer ml-1"
+                >
+                  {playbackSpeed}x
+                </button>
+              )}
+            </div>
+
+            {/* Right actions: bookmark, share, font adjust, reading theme */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onToggleBookmark}
+                className={`p-2 rounded-xs border transition-colors cursor-pointer flex items-center gap-1.5 text-xs ${
+                  isBookmarked
+                    ? 'border-black bg-black text-white'
+                    : readingTheme === 'dark'
+                    ? 'border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white'
+                    : 'border-nyt-border bg-white hover:bg-neutral-50 text-nyt-black'
+                }`}
+                title="Bookmark story"
+              >
+                <Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-current' : ''}`} />
+                <span className="hidden sm:inline">{isBookmarked ? 'Saved' : 'Save'}</span>
+              </button>
+
+              <button
+                onClick={handleShare}
+                className={`p-2 rounded-xs border transition-colors cursor-pointer flex items-center gap-1.5 text-xs ${
+                  readingTheme === 'dark'
+                    ? 'border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-white'
+                    : 'border-nyt-border bg-white hover:bg-neutral-50 text-nyt-black'
+                }`}
+                title="Share link"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Share</span>
+              </button>
+
+              {/* Reading Theme Toggle */}
+              <div className="flex items-center border border-neutral-300 rounded-xs overflow-hidden text-xs">
+                <button
+                  onClick={() => setReadingTheme('white')}
+                  className={`px-2 py-1.5 text-[10px] font-bold cursor-pointer transition-colors ${
+                    readingTheme === 'white'
+                      ? 'bg-black text-white'
+                      : 'bg-white text-neutral-700 hover:bg-neutral-100'
+                  }`}
+                  title="White theme"
+                >
+                  Paper
+                </button>
+                <button
+                  onClick={() => setReadingTheme('sepia')}
+                  className={`px-2 py-1.5 text-[10px] font-bold cursor-pointer transition-colors ${
+                    readingTheme === 'sepia'
+                      ? 'bg-[#5c4d3c] text-white'
+                      : 'bg-[#f4efe6] text-[#5c4d3c] hover:bg-[#eae3d5]'
+                  }`}
+                  title="Sepia parchment theme"
+                >
+                  Sepia
+                </button>
+                <button
+                  onClick={() => setReadingTheme('dark')}
+                  className={`px-2 py-1.5 text-[10px] font-bold cursor-pointer transition-colors ${
+                    readingTheme === 'dark'
+                      ? 'bg-white text-black'
+                      : 'bg-neutral-900 text-white hover:bg-neutral-800'
+                  }`}
+                  title="Dark night theme"
+                >
+                  Night
+                </button>
+              </div>
+
+              {/* Font Size Selector */}
+              <div className="flex items-center border border-neutral-300 rounded-xs bg-white text-xs overflow-hidden">
+                <button
+                  onClick={() => setTextSize('normal')}
+                  className={`px-2 py-1.5 transition-colors cursor-pointer ${
+                    textSize === 'normal'
+                      ? 'bg-nyt-black text-white font-bold'
+                      : 'text-nyt-grayDark hover:bg-neutral-100'
+                  }`}
+                  title="Normal text size"
+                >
+                  A
+                </button>
+                <button
+                  onClick={() => setTextSize('large')}
+                  className={`px-2 py-1.5 text-sm transition-colors cursor-pointer ${
+                    textSize === 'large'
+                      ? 'bg-nyt-black text-white font-bold'
+                      : 'text-nyt-grayDark hover:bg-neutral-100'
+                  }`}
+                  title="Large text size"
+                >
+                  A+
+                </button>
+                <button
+                  onClick={() => setTextSize('larger')}
+                  className={`px-2 py-1.5 text-base transition-colors cursor-pointer ${
+                    textSize === 'larger'
+                      ? 'bg-nyt-black text-white font-bold'
+                      : 'text-nyt-grayDark hover:bg-neutral-100'
+                  }`}
+                  title="Largest text size"
+                >
+                  A++
+                </button>
+              </div>
+            </div>
+          </div>
 
         {/* Audio Progress bar */}
         {isPlayingAudio && (
@@ -447,6 +605,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({
             ))}
           </div>
         </section>
+        </div>
       </div>
     </article>
   );

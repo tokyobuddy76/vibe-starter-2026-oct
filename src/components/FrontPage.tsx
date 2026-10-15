@@ -41,6 +41,15 @@ export const FrontPage: React.FC<FrontPageProps> = ({
   const cooking = articles.find((a) => a.id === 'braised-chicken-thighs') || articles[11];
   const games = articles.find((a) => a.id === 'crossword-connections-game') || articles[12];
 
+  const [usePhotojournalism, setUsePhotojournalism] = React.useState(true);
+
+  const getImageSrc = (article: Article) => {
+    if (usePhotojournalism && article.photoUrl) {
+      return article.photoUrl;
+    }
+    return article.placeholderUrl || 'https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg';
+  };
+
   const renderBookmarkButton = (articleId: string) => (
     <button
       onClick={(e) => onToggleBookmark(articleId, e)}
@@ -56,6 +65,40 @@ export const FrontPage: React.FC<FrontPageProps> = ({
 
   return (
     <main className="max-w-[1240px] mx-auto px-4 py-4" id="main-content">
+      {/* Visual Presentation Mode Switcher (Pro touch) */}
+      <div className="flex items-center justify-between pb-2 mb-3 border-b border-nyt-border font-sansText text-[11px] text-nyt-grayMuted">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-black uppercase tracking-wider text-[10px]">
+            Edition Mode:
+          </span>
+          <button
+            onClick={() => setUsePhotojournalism(true)}
+            className={`px-2 py-0.5 rounded-xs transition-colors cursor-pointer ${
+              usePhotojournalism
+                ? 'bg-nyt-black text-white font-bold'
+                : 'hover:text-black text-nyt-grayMuted'
+            }`}
+          >
+            Editorial Photojournalism
+          </button>
+          <span className="text-nyt-border">|</span>
+          <button
+            onClick={() => setUsePhotojournalism(false)}
+            className={`px-2 py-0.5 rounded-xs transition-colors cursor-pointer ${
+              !usePhotojournalism
+                ? 'bg-nyt-black text-white font-bold'
+                : 'hover:text-black text-nyt-grayMuted'
+            }`}
+          >
+            Minimalist Wireframe
+          </button>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-neutral-500">
+          <Clock className="w-3 h-3 text-red-700" />
+          <span>Updated 4 minutes ago</span>
+        </div>
+      </div>
+
       {/* Top Editorial Section (3-Column Layout reminiscent of the NYT front page) */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-8 border-b border-nyt-border" data-purpose="top-breaking-stories">
         
@@ -136,12 +179,12 @@ export const FrontPage: React.FC<FrontPageProps> = ({
             <div className="md:col-span-7 space-y-2">
               <div
                 onClick={() => onOpenArticle(heroArticle)}
-                className="overflow-hidden bg-[#e8eaf6] aspect-[4/3] flex items-center justify-center cursor-pointer group relative"
+                className="overflow-hidden bg-[#e8eaf6] aspect-[4/3] flex items-center justify-center cursor-pointer group relative shadow-xs"
               >
                 <img
-                  alt="Kimberly Guilfoyle in glasses looking directly forward"
-                  className="w-full h-auto object-cover object-top max-h-[340px] transition-transform duration-300 group-hover:scale-102"
-                  src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"
+                  alt={heroArticle.photoCaption || heroArticle.title}
+                  className="w-full h-full object-cover object-center max-h-[340px] transition-transform duration-500 group-hover:scale-102"
+                  src={getImageSrc(heroArticle)}
                   referrerPolicy="no-referrer"
                 />
               </div>
@@ -345,12 +388,12 @@ export const FrontPage: React.FC<FrontPageProps> = ({
           <article className="space-y-2 group">
             <div
               onClick={() => onOpenArticle(tvShow)}
-              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative"
+              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative shadow-xs"
             >
               <img
                 alt="Culture coverage"
-                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"
+                className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500"
+                src={getImageSrc(tvShow)}
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -378,12 +421,12 @@ export const FrontPage: React.FC<FrontPageProps> = ({
           <article className="space-y-2 group">
             <div
               onClick={() => onOpenArticle(books)}
-              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative"
+              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative shadow-xs"
             >
               <img
                 alt="Books coverage"
-                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"
+                className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500"
+                src={getImageSrc(books)}
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -411,12 +454,12 @@ export const FrontPage: React.FC<FrontPageProps> = ({
           <article className="space-y-2 group">
             <div
               onClick={onOpenCookingRecipe}
-              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative"
+              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative shadow-xs"
             >
               <img
                 alt="Dining coverage"
-                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"
+                className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500"
+                src={getImageSrc(cooking)}
                 referrerPolicy="no-referrer"
               />
               <span className="absolute bottom-2 right-2 bg-black/75 text-white text-[10px] font-sansText px-1.5 py-0.5 rounded-xs font-semibold">
@@ -447,12 +490,12 @@ export const FrontPage: React.FC<FrontPageProps> = ({
           <article className="space-y-2 group">
             <div
               onClick={onOpenMiniCrossword}
-              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative border border-nyt-border"
+              className="aspect-video bg-[#e8eaf6] overflow-hidden cursor-pointer flex items-center justify-center relative border border-nyt-border shadow-xs"
             >
               <img
                 alt="Games coverage"
-                className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
-                src="https://www.gstatic.com/labs-code/stitch/stitch-placeholder-300x300.svg"
+                className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-500"
+                src={getImageSrc(games)}
                 referrerPolicy="no-referrer"
               />
               <span className="absolute bottom-2 right-2 bg-black text-white text-[10px] font-sansText px-2 py-0.5 rounded-xs font-bold uppercase tracking-wider flex items-center gap-1">

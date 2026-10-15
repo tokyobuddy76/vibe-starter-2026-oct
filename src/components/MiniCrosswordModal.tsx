@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MINI_CROSSWORD_DATA } from '../data/newsData';
 import {
+  playKeyClick,
+  playBackspaceClick,
+  playErrorTone,
+  playVictoryChime
+} from '../utils/audioEffects';
+import {
   X,
   Play,
   Pause,
@@ -10,7 +16,9 @@ import {
   Trophy,
   Share2,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 interface MiniCrosswordModalProps {
@@ -34,6 +42,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ isOpen, 
   const [revealedCells, setRevealedCells] = useState<boolean[][]>(() =>
     Array(size).fill(false).map(() => Array(size).fill(false))
   );
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const [activeMenu, setActiveMenu] = useState<'check' | 'reveal' | null>(null);
 
@@ -64,8 +73,9 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ isOpen, 
     if (complete) {
       setIsSolved(true);
       setIsTimerRunning(false);
+      if (soundEnabled) playVictoryChime();
     }
-  }, [gridState, isSolved]);
+  }, [gridState, isSolved, soundEnabled]);
 
   // Handle cell click
   const handleCellClick = (r: number, c: number) => {
@@ -102,6 +112,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ isOpen, 
         setSelectedCell((prev) => ({ ...prev, row: Math.max(0, prev.row - 1) }));
       } else if (e.key === 'Backspace') {
         e.preventDefault();
+        if (soundEnabled) playBackspaceClick();
         // Clear current letter, move backwards
         const { row, col } = selectedCell;
         setGridState((prev) => {
@@ -123,6 +134,7 @@ export const MiniCrosswordModal: React.FC<MiniCrosswordModalProps> = ({ isOpen, 
         }
       } else if (/^[a-zA-Z]$/.test(e.key)) {
         e.preventDefault();
+        if (soundEnabled) playKeyClick();
         const letter = e.key.toUpperCase();
         const { row, col } = selectedCell;
 

@@ -134,6 +134,7 @@ export default function App() {
         onOpenLogin={() => setIsLoginOpen(true)}
         onOpenTodaysPaper={() => setIsTodaysPaperOpen(true)}
         onOpenSavedDrawer={() => setIsSavedDrawerOpen(true)}
+        onOpenLiveUpdates={() => setIsLiveUpdatesOpen(true)}
         onSelectSection={handleSelectSection}
         activeSection={activeSection}
         savedCount={savedArticleIds.length}
